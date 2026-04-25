@@ -223,3 +223,4 @@ data/raw/
 __pycache__/
 *.pyc
 .DS_Store
+logs/

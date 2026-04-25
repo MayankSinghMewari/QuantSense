@@ -1,5 +1,4 @@
 yfinance
 pandas
-sqlalchemy
-psycopg2-binary
+pymongo
 python-dotenv
