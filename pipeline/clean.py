@@ -10,6 +10,52 @@ def compute_rsi(series, period=14):
     rs    = gain / loss
     return 100 - (100 / (1 + rs))
 
+def compute_custom_indicators(df):
+    # Momentum Score
+    df['momentum_score'] = (
+        (df['close'] - df['close'].shift(5))  / df['close'].shift(5)  * 0.3 +
+        (df['close'] - df['close'].shift(10)) / df['close'].shift(10) * 0.3 +
+        (df['close'] - df['close'].shift(20)) / df['close'].shift(20) * 0.4
+    )
+
+    # Volume Pressure
+    df['volume_pressure'] = (
+        (df['close'] - df['open']) / (df['high'] - df['low']) * df['volume']
+    )
+
+    # Candle Strength
+    df['candle_strength'] = (df['close'] - df['open']) / (df['high'] - df['low'])
+
+    # RSI + MACD Combined
+    df['rsi_macd_signal'] = (
+        (df['rsi'] - 50) / 50 * 0.5 +
+        df['macd'] / df['close'] * 0.5
+    )
+
+    # Support / Resistance
+    df['resistance_distance'] = (df['close'].rolling(20).max() - df['close']) / df['close']
+    df['support_distance']    = (df['close'] - df['close'].rolling(20).min()) / df['close']
+
+    # Gap Score
+    df['gap_score'] = (df['open'] - df['close'].shift(1)) / df['close'].shift(1)
+
+    # QuantSense Score (0-100)
+    rsi_score      = (100 - df['rsi']) / 100
+    momentum_score = df['momentum_score'].clip(-1, 1)
+    volume_score   = (df['volume_pressure'] > 0).astype(int)
+    candle_score   = (df['candle_strength'] + 1) / 2
+    support_score  = 1 - df['support_distance'].clip(0, 1)
+
+    df['qs_score'] = (
+        rsi_score      * 0.25 +
+        momentum_score * 0.25 +
+        volume_score   * 0.20 +
+        candle_score   * 0.15 +
+        support_score  * 0.15
+    ) * 100
+
+    return df
+
 def clean(ticker):
     filename = ticker.replace(".", "_").replace("^", "").replace("=", "")
     path = f"data/raw/{filename}.csv"
@@ -48,6 +94,7 @@ def clean(ticker):
         # Volume trend
         df['volume_ma']    = df['volume'].rolling(20).mean()
 
+        df = compute_custom_indicators(df)
         df = df.dropna()
         logger.info(f"Cleaned {ticker} — {len(df)} rows")
         return df
