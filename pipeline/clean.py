@@ -1,117 +1,68 @@
 import pandas as pd
-import os
-from config import STOCKS, GLOBAL_INDICES
+import numpy as np
 from logger import logger
 
 def compute_rsi(series, period=14):
     delta = series.diff()
-    gain  = delta.where(delta > 0, 0).rolling(period).mean()
-    loss  = -delta.where(delta < 0, 0).rolling(period).mean()
-    rs    = gain / loss
+    gain  = delta.where(delta > 0, 0).ewm(alpha=1/period, adjust=False).mean()
+    loss  = (-delta.where(delta < 0, 0)).ewm(alpha=1/period, adjust=False).mean()
+    rs    = gain / loss.replace(0, np.nan)
     return 100 - (100 / (1 + rs))
 
-def compute_custom_indicators(df):
-    # Momentum Score
-    df['momentum_score'] = (
-        (df['close'] - df['close'].shift(5))  / df['close'].shift(5)  * 0.3 +
-        (df['close'] - df['close'].shift(10)) / df['close'].shift(10) * 0.3 +
-        (df['close'] - df['close'].shift(20)) / df['close'].shift(20) * 0.4
-    )
-
-    # Volume Pressure
-    df['volume_pressure'] = (
-        (df['close'] - df['open']) / (df['high'] - df['low']) * df['volume']
-    )
-
-    # Candle Strength
-    df['candle_strength'] = (df['close'] - df['open']) / (df['high'] - df['low'])
-
-    # RSI + MACD Combined
-    df['rsi_macd_signal'] = (
-        (df['rsi'] - 50) / 50 * 0.5 +
-        df['macd'] / df['close'] * 0.5
-    )
-
-    # Support / Resistance
-    df['resistance_distance'] = (df['close'].rolling(20).max() - df['close']) / df['close']
-    df['support_distance']    = (df['close'] - df['close'].rolling(20).min()) / df['close']
-
-    # Gap Score
-    df['gap_score'] = (df['open'] - df['close'].shift(1)) / df['close'].shift(1)
-
-    # QuantSense Score (0-100)
-    rsi_score      = (100 - df['rsi']) / 100
-    momentum_score = df['momentum_score'].clip(-1, 1)
-    volume_score   = (df['volume_pressure'] > 0).astype(int)
-    candle_score   = (df['candle_strength'] + 1) / 2
-    support_score  = 1 - df['support_distance'].clip(0, 1)
-
-    df['qs_score'] = (
-        rsi_score      * 0.25 +
-        momentum_score * 0.25 +
-        volume_score   * 0.20 +
-        candle_score   * 0.15 +
-        support_score  * 0.15
-    ) * 100
-
-    return df
-
-def clean(ticker):
-    filename = ticker.replace(".", "_").replace("^", "").replace("=", "")
-    path = f"data/raw/{filename}.csv"
-
-    if not os.path.exists(path):
-        logger.warning(f"File missing: {path}")
+def clean_ticker_data(ticker, df):
+    if df is None or df.empty:
         return None
-
     try:
-        df = pd.read_csv(path, header=[0,1], index_col=0)
-        df.columns = [col[0].lower() for col in df.columns]
-        df.index = pd.to_datetime(df.index)
+        df = df.copy()
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
+        df.columns = [c.lower() for c in df.columns]
         df = df[['open','high','low','close','volume']].dropna()
 
-        # basic
         df['ticker']       = ticker
         df['daily_return'] = df['close'].pct_change()
-
-        # moving averages
         df['ma_20']        = df['close'].rolling(20).mean()
         df['ma_50']        = df['close'].rolling(50).mean()
-
-        # volatility
         df['volatility']   = df['daily_return'].rolling(20).std()
-
-        # RSI
         df['rsi']          = compute_rsi(df['close'])
-
-        # MACD
         df['macd']         = df['close'].ewm(span=12).mean() - df['close'].ewm(span=26).mean()
 
-        # Bollinger Bands
-        df['bb_upper']     = df['ma_20'] + 2 * df['close'].rolling(20).std()
-        df['bb_lower']     = df['ma_20'] - 2 * df['close'].rolling(20).std()
-
-        # Volume trend
+        std20              = df['close'].rolling(20).std()
+        df['bb_upper']     = df['ma_20'] + 2 * std20
+        df['bb_lower']     = df['ma_20'] - 2 * std20
         df['volume_ma']    = df['volume'].rolling(20).mean()
 
-        df = compute_custom_indicators(df)
+        # Custom indicators
+        price_range            = (df['high'] - df['low']).replace(0, np.nan)
+        df['candle_strength']  = (df['close'] - df['open']) / price_range
+        df['momentum_score']   = (
+            df['close'].pct_change(5)  * 0.3 +
+            df['close'].pct_change(10) * 0.3 +
+            df['close'].pct_change(20) * 0.4
+        )
+        df['gap_score']            = (df['open'] - df['close'].shift(1)) / df['close'].shift(1)
+        df['resistance_distance']  = (df['close'].rolling(20).max() - df['close']) / df['close']
+        df['support_distance']     = (df['close'] - df['close'].rolling(20).min()) / df['close']
+
+        # QuantSense Score
+        rsi_score     = (100 - df['rsi']).fillna(50) / 100
+        mom_score     = df['momentum_score'].clip(-1, 1)
+        candle_score  = (df['candle_strength'].fillna(0) + 1) / 2
+        support_score = 1 - df['support_distance'].clip(0, 1)
+        volume_score  = ((df['close'] - df['open']) / price_range > 0).astype(int)
+
+        df['qs_score'] = (
+            rsi_score     * 0.25 +
+            mom_score     * 0.25 +
+            volume_score  * 0.20 +
+            candle_score  * 0.15 +
+            support_score * 0.15
+        ) * 100
+
         df = df.dropna()
         logger.info(f"Cleaned {ticker} — {len(df)} rows")
         return df
 
     except Exception as e:
-        logger.error(f"Failed cleaning {ticker} — {e}")
+        logger.error(f"Clean failed {ticker}: {e}")
         return None
-
-
-def clean_all():
-    all_data = {}
-    all_tickers = STOCKS + GLOBAL_INDICES
-
-    for ticker in all_tickers:
-        df = clean(ticker)
-        if df is not None:
-            all_data[ticker] = df
-
-    logger.info(f"Clean complete | {len(all_data)} tickers ready")
-    return all_data

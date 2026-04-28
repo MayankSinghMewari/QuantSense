@@ -1,29 +1,33 @@
 import os
-from pymongo import MongoClient
-from dotenv import load_dotenv
+from pymongo import MongoClient, UpdateOne
+from config import MONGO_URL, DB_NAME, COLLECTION_NAME
 from logger import logger
 
-load_dotenv()
-
-MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017/")
-
-def save_to_db(all_data):
+def save_ticker_to_db(ticker, df):
+    if df is None or df.empty:
+        return
     try:
-        client = MongoClient(MONGO_URL)
-        db = client["quantsense"]
-        collection = db["stock_prices"]
+        client    = MongoClient(MONGO_URL)
+        collection = client[DB_NAME][COLLECTION_NAME]
 
-        for ticker, df in all_data.items():
-            df_save = df.reset_index()
-            df_save.columns = [c.lower() for c in df_save.columns]
-            
-            # convert to dict records for MongoDB
-            records = df_save.to_dict("records")
-            
-            collection.insert_many(records)
-            logger.info(f"Stored {ticker} — {len(records)} records")
+        collection.create_index([("ticker", 1), ("date", 1)], unique=True)
 
-        logger.info("All data saved to MongoDB!")
+        df_save         = df.reset_index()
+        df_save.columns = [c.lower().replace(" ", "_") for c in df_save.columns]
+        df_save["ticker"] = ticker
 
+        ops = [
+            UpdateOne(
+                {"ticker": r["ticker"], "date": r["date"]},
+                {"$set": r},
+                upsert=True
+            ) for r in df_save.to_dict("records")
+        ]
+
+        if ops:
+            result = collection.bulk_write(ops)
+            logger.info(f"Stored {ticker}: {result.upserted_count} new, {result.modified_count} updated.")
+
+        client.close()
     except Exception as e:
-        logger.error(f"MongoDB error — {e}")
+        logger.error(f"Storage error {ticker}: {e}")

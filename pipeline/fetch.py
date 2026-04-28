@@ -1,33 +1,38 @@
 import yfinance as yf
-import os
-from config import STOCKS, GLOBAL_INDICES, START_DATE, END_DATE
+import time
+import random
+from pymongo import MongoClient
+from config import MONGO_URL, DB_NAME, COLLECTION_NAME, START_DATE
 from logger import logger
 
-def fetch_all():
-    os.makedirs("data/raw", exist_ok=True)
+def get_last_date(ticker):
+    try:
+        client = MongoClient(MONGO_URL)
+        last = client[DB_NAME][COLLECTION_NAME].find_one(
+            {"ticker": ticker}, sort=[("date", -1)]
+        )
+        client.close()
+        return last["date"] if last else START_DATE
+    except Exception:
+        return START_DATE
 
-    all_tickers = STOCKS + GLOBAL_INDICES
-    success, failed = [], []
+def fetch_ticker_data(ticker, index):
+    start_date = get_last_date(ticker)
+    try:
+        df = yf.download(ticker, start=start_date, progress=False)
+        if df.empty:
+            logger.warning(f"No data for {ticker}")
+            return None
+        logger.info(f"Fetched {ticker} — {len(df)} rows")
 
-    for ticker in all_tickers:
-        logger.info(f"Fetching {ticker}...")
-        try:
-            df = yf.download(ticker, start=START_DATE, end=END_DATE, progress=False)
+        # Rate limiting
+        if (index + 1) % 10 == 0:
+            logger.info("Cooling down 10s...")
+            time.sleep(10)
+        else:
+            time.sleep(random.uniform(0.5, 1.5))
 
-            if df.empty:
-                logger.warning(f"No data for {ticker}")
-                failed.append(ticker)
-                continue
-
-            filename = ticker.replace(".", "_").replace("^", "").replace("=", "")
-            df.to_csv(f"data/raw/{filename}.csv")
-            logger.info(f"Saved {ticker} — {len(df)} rows")
-            success.append(ticker)
-
-        except Exception as e:
-            logger.error(f"Failed {ticker} — {e}")
-            failed.append(ticker)
-
-    logger.info(f"Fetch complete | Success: {len(success)} | Failed: {len(failed)}")
-    if failed:
-        logger.warning(f"Failed: {failed}")
+        return df
+    except Exception as e:
+        logger.error(f"Failed {ticker}: {e}")
+        return None
