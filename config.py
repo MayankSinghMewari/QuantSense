@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 
-START_DATE = "2022-01-01"
+START_DATE = "2000-01-01"  # was 2022-01-01
 END_DATE   = datetime.now().strftime('%Y-%m-%d')
 
 STOCKS = [
