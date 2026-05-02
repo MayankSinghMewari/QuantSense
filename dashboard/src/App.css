@@ -1,0 +1,159 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #0a0a0f;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.app {
+  min-height: 100vh;
+}
+
+.header {
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  padding: 20px 40px;
+  border-bottom: 1px solid #333;
+}
+
+.header h1 {
+  font-size: 28px;
+  color: #00c853;
+}
+
+.header p {
+  color: #888;
+  font-size: 14px;
+}
+
+.main {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  height: calc(100vh - 80px);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  width: 500px;
+  overflow-y: auto;
+}
+
+.card {
+  background: #1a1a2e;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.card:hover {
+  border-color: #00c853;
+  transform: translateY(-2px);
+}
+
+.card.selected {
+  border-color: #00c853;
+  background: #1e2a1e;
+}
+
+.card.loading {
+  opacity: 0.5;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.card-header h3 {
+  font-size: 15px;
+  color: #fff;
+}
+
+.price {
+  font-size: 20px;
+  font-weight: bold;
+  color: #00c853;
+  margin-bottom: 8px;
+}
+
+.metrics {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+  color: #888;
+  margin-bottom: 8px;
+}
+
+.sentiment-bar {
+  background: #333;
+  height: 4px;
+  border-radius: 2px;
+  margin-bottom: 4px;
+}
+
+small {
+  color: #666;
+  font-size: 11px;
+}
+
+.detail-panel {
+  flex: 1;
+  background: #1a1a2e;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.detail-panel.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #555;
+}
+
+.detail-panel h2 {
+  font-size: 22px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.detail-item {
+  background: #0a0a1a;
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+}
+
+.detail-item label {
+  display: block;
+  font-size: 11px;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+.detail-item value {
+  font-size: 18px;
+  font-weight: bold;
+  color: #00c853;
+}
