@@ -2,3 +2,16 @@ yfinance
 pandas
 pymongo
 python-dotenv
+scikit-learn
+xgboost
+tensorflow
+matplotlib
+transformers
+torch
+newsapi-python
+requests
+beautifulsoup4
+feedparser
+fastapi
+uvicorn
+numpy

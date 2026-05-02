@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGO_URL=mongodb://mongo:27017/
+      - DB_NAME=quantsense
+    depends_on:
+      - mongo
+    volumes:
+      - ./logs:/app/logs
+      - ./models/saved:/app/models/saved
+      - ./data:/app/data
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./mongo_data:/data/db
+
+volumes: {}

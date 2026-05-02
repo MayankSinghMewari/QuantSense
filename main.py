@@ -5,6 +5,7 @@ from pipeline.store import save_ticker_to_db
 from logger import logger
 from config import ALL_TICKERS, STOCKS
 
+
 def run_pipeline():
     logger.info(f"=== QuantSense Pipeline Started — {len(ALL_TICKERS)} tickers ===")
     start_time  = time.time()
@@ -46,6 +47,21 @@ def run_backtest():
     logger.info("=== Phase 2: Backtesting ===")
     backtest_all()
 
+def run_sentiment():
+    from sentiment.sentiment_pipeline import run_sentiment_pipeline
+    logger.info("=== Phase 3: Sentiment Engine ===")
+    run_sentiment_pipeline()
+
+def run_signals():
+    from signals.signal_engine import get_all_signals
+    from config import STOCKS
+    logger.info("=== Phase 4: Generating Signals ===")
+    signals = get_all_signals(STOCKS[:10])
+    for s in signals:
+        logger.info(
+            f"{s['ticker']} | {s['signal']} | "
+            f"Confidence: {s['confidence']}% | Risk: {s['risk']}"
+        )
 
 if __name__ == "__main__":
     import sys
@@ -65,10 +81,20 @@ if __name__ == "__main__":
             run_training()
         elif mode == "backtest":
             run_backtest()
+        elif mode == "sentiment":
+            run_sentiment()
+        elif mode == "signals":
+            run_signals()
+        elif mode == "api":
+            import uvicorn
+            uvicorn.run("signals.signal_api:app", host="0.0.0.0", port=8000, reload=True)
         elif mode == "all":
             run_pipeline()
             run_training()
             run_backtest()
+            run_sentiment()
+            run_signals()
+            logger.info("All done!")
         else:
             logger.error(f"Unknown mode: {mode}. Use: pipeline | train | backtest | all")
 
