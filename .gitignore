@@ -226,3 +226,6 @@ __pycache__/
 logs/
 
 notes/
+
+models/saved/
+mongo_backup/
