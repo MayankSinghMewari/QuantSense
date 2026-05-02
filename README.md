@@ -37,11 +37,11 @@ MongoDB     NLP Sentiment                  Limit
 
 | Phase | Description | Status |
 |-------|-------------|--------|
-| 1 | Data Pipeline & Cloud Infra | 🔄 In Progress |
-| 2 | ML Model Development | ⏳ Upcoming |
-| 3 | Sentiment Engine & News Crawler | ⏳ Upcoming |
-| 4 | Signal Engine & Trade Logic | ⏳ Upcoming |
-| 5 | DevOps, Containers & CI/CD | ⏳ Upcoming |
+| 1 | Data Pipeline & Cloud Infra | ✅ Complete |
+| 2 | ML Model Development | ✅ Complete |
+| 3 | Sentiment Engine & News Crawler | ✅ Complete |
+| 4 | Signal Engine & Trade Logic | ✅ Complete |
+| 5 | DevOps, Containers & CI/CD | 🔄 In Progress |
 | 6 | Dashboard, API & Product Launch | ⏳ Upcoming |
 
 ---
