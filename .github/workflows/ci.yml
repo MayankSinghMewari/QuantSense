@@ -1,0 +1,42 @@
+name: QuantSense CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
+      run: |
+        pip install yfinance pandas pymongo python-dotenv \
+          scikit-learn xgboost fastapi uvicorn \
+          requests beautifulsoup4 feedparser numpy
+
+    - name: Lint with flake8
+      run: |
+        pip install flake8
+        flake8 . --count --max-line-length=120 --exclude=.venv,__pycache__ --statistics || true
+
+    - name: Build Docker image
+      run: docker build -t quantsense .
+
+    - name: Verify container starts
+      run: |
+        docker run -d --name test-app \
+          -e MONGO_URL=mongodb://localhost:27017/ \
+          -p 8000:8000 quantsense
+        sleep 5
+        docker logs test-app
