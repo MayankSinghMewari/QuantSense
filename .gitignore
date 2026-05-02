@@ -229,3 +229,4 @@ notes/
 
 models/saved/
 mongo_backup/
+mongo_data/
