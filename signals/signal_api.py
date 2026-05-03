@@ -25,6 +25,26 @@ def root():
     return {"message": "QuantSense API is running!", "version": "1.0.0"}
 
 
+@app.get("/price-history/{ticker}")
+def get_history(ticker: str, days: int = 90):
+    try:
+        client     = MongoClient(MONGO_URL)
+        collection = client[DB_NAME]["stock_prices"]
+        records    = list(collection.find(
+            {"ticker": ticker.upper()},
+            {"_id": 0, "date": 1, "close": 1, "ma_20": 1, "ma_50": 1,
+             "bb_upper": 1, "bb_lower": 1, "volume": 1, "rsi": 1}
+        ).sort("date", -1).limit(days))
+        client.close()
+        records.reverse()
+        for r in records:
+            if hasattr(r.get('date'), 'strftime'):
+                r['date'] = r['date'].strftime('%d %b')
+        return {"ticker": ticker, "data": records}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/signal/{ticker}")
 def get_ticker_signal(ticker: str):
     """Get latest signal for a single ticker."""
@@ -92,7 +112,10 @@ def get_sentiment(ticker: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+
+
 @app.get("/health")
 def health():
     """Health check endpoint."""
     return {"status": "healthy"}
+

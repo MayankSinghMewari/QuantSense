@@ -91,6 +91,15 @@ def get_signal(ticker):
             "latest_close"  : round(float(df['close'].iloc[-1]), 2),
             "rsi"           : round(float(df['rsi'].iloc[-1]), 2),
             "ma_20"         : round(float(df['ma_20'].iloc[-1]), 2),
+            "ma_50"         : round(float(df['ma_50'].iloc[-1]), 2),
+            "macd"          : round(float(df['macd'].iloc[-1]), 4),
+            "bb_upper"      : round(float(df['bb_upper'].iloc[-1]), 2),
+            "bb_lower"      : round(float(df['bb_lower'].iloc[-1]), 2),
+            "volatility"    : round(float(df['volatility'].iloc[-1]), 4),
+            "candle_strength": round(float(df['candle_strength'].iloc[-1]), 4),
+            "momentum_score": round(float(df['momentum_score'].iloc[-1]), 4),
+            "gap_score"     : round(float(df['gap_score'].iloc[-1]), 4),
+            "qs_score"      : round(float(df['qs_score'].iloc[-1]), 2)
         }
 
         logger.info(
